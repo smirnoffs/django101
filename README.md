@@ -210,3 +210,82 @@ Now we can run the server
 
 and access the admin site http://127.0.0.1:8000/admin/
 
+## Views
+
+Views are functions that accepts http requests and returns http responses. First we need to register our path in the path router file `urls.py`
+
+```python
+from django.contrib import admin
+from django.urls import path
+from .customer import views
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('doctors/', views.doctors)
+]
+```
+
+Now let's create a view for doctors in `customer.views.py`
+
+```python
+from django.shortcuts import render
+from django.http import HttpResponse
+from .models import Customer, StageChoice
+
+
+def doctors(request):
+    doctors = Customer.objects.filter(stage__name=StageChoice.CLINIC)
+    docs = "".join(f"<li>{doc.name}</li>" for doc in doctors)
+    html = f"<html><body><ul>{docs}</ul></body></html>"
+    return HttpResponse(html)
+```
+
+When you add new customers with the stage `clinic` they will appear on the newly created page http://127.0.0.1:8000/doctors/
+
+## Views are better with templates
+
+Let's create a template in `customer/templates/customer/doctors_list.html`
+
+```html
+<html>
+<body>
+<ul>
+{% for doctor in doctors %}
+    <li>{{ doctor.name }}</li>
+{% endfor %}
+</ul>
+</body>
+</html>
+```
+
+Now we can simplify the representation of the view 
+
+```python
+from django.shortcuts import render
+from .models import Customer, StageChoice
+
+
+def doctors(request):
+    doctors = Customer.objects.filter(stage__name=StageChoice.CLINIC)
+    return render(request, "customer/doctors_list.html", {"doctors": doctors})
+
+```
+
+## Django shell
+
+`./manage.py shell` runs an interactive shell which can be used for quering data or... whatever else
+
+```python
+>>> from django101.customer.models import Customer
+# Count all customers
+>>> Customer.objects.count()
+4
+# Get the customer name with ID equals 2
+>>> Customer.objects.get(id=2).name
+'Peter'
+# Get all customers with ID not equal 2
+>>> from django.db.models import Q
+>>> Customer.objects.filter(~Q(id=2))
+<QuerySet [<Customer: Nicola (CL)>, <Customer: Anna (PC)>, <Customer: Peter Pen (CL)>]>
+```
+
